@@ -24,19 +24,34 @@
     wvv.setStage = function (layerId, stage) {
         var canvas = document.getElementById(layerId);
         var dc = canvas.getContext('2d');
+        stage.setSize(canvas.width, canvas.height);
         _delegateTouchEventToStage(canvas, stage);
         _layers.push([layerId, stage, canvas, dc, defaultFlags]);
     };
 
     var callbacks = [];
+    var onceCallback = [];
     wvv.post = function(cb) {
+        onceCallback.push(cb);
+    };
+    wvv.registerCb = function(cb) {
         callbacks.push(cb);
     };
-
-    var _handleCallbacks = function() {
-        for (var i = 0, length = callbacks.length; i < length; ++i) {
-            callbacks[i]();
+    wvv.unRegisterCb = function(cb) {
+        var index = callbacks.indexOf(cb);
+        if (index >= 0) {
+            callbacks.splice(index, 1);
         }
+    };
+
+    var invokeFunction = function (f) {
+        f();
+    };
+    var _handleCallbacks = function() {
+        callbacks.forEach(invokeFunction);
+        var ocbs = onceCallback;
+        onceCallback = [];
+        ocbs.forEach(invokeFunction);
     };
 
     var _render = function() {
@@ -53,7 +68,6 @@
     wvv.gameLoop = function() {
         (function _loop() {
             _handleCallbacks();
-            console.log("rendering");
             _render();
             if (devEnv) {
                 window.setTimeout(_loop, 10000);

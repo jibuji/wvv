@@ -33,75 +33,7 @@ p.getHeight = function () {
 p.draw = EmptyFunc;
 
 module.exports = ADrawable;
-},{"./utils":10}],2:[function(require,module,exports){
-/**
- * Created by jiengfei on 15-3-24.
- */
-
-
-"use strict";
-var utils = require('./utils');
-var Matrix = require('./Matrix');
-var draw = function (dc) {
-    dc.save();
-    dc.translate(this.tx, this.ty);
-    var mat = this.rMatrix;
-    //utils.print("mat="+mat);
-    dc.transform(mat.a, mat.c, mat.b, mat.d, mat.tx, mat.ty);
-    this.drawable.draw(dc);
-    dc.restore();
-};
-
-function AElement(drawable) {
-    this.tx = this.ty = 0;
-    this.rMatrix = Matrix.create();
-    this.drawable = drawable;
-    this.draw = draw;
-};
-
-var p = AElement.prototype;
-p.rotate = function(angle) {
-    var size = this.getSize();
-    this.rMatrix.rotate(angle, size.width, size.height);
-};
-p.pivotRotate = function (angle, px, py) {
-    var mat = this.rMatrix;
-    mat.translate(px, py);
-    mat.rotate(angle);
-    mat.translate(-px, -py);
-};
-p.scale = function(sx, sy) {
-    var mat = this.rMatrix;
-    mat.scale(sx, sy);
-};
-p.pivotScale = function(sx, sy, px, py) {
-    var mat = this.rMatrix;
-    mat.translate(px, py);
-    mat.scale(sx, sy);
-    mat.translate(-px, -py);
-};
-p.translate = function (tx, ty) {
-    this.tx += tx;
-    this.ty += ty;
-};
-p.getSize = function () {
-    return this.drawable.getSize();
-};
-p.getWidth = function () {
-    return this.drawable.getWidth();
-};
-p.getHeight = function() {
-    return this.drawable.getHeight();
-};
-
-p.move = p.translate;
-p.draw = draw;
-
-module.exports = AElement;
-
-
-
-},{"./Matrix":7,"./utils":10}],3:[function(require,module,exports){
+},{"./utils":11}],2:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-24.
  */
@@ -110,7 +42,7 @@ var CONFIG = {
 };
 
 module.exports = CONFIG;
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-4-10.
  */
@@ -175,7 +107,107 @@ function DrawRecorder() {
 module.exports = DrawRecorder;
 
 
-},{"./GraphicsDrawable":5,"./utils":10}],5:[function(require,module,exports){
+},{"./GraphicsDrawable":5,"./utils":11}],4:[function(require,module,exports){
+/**
+ * Created by jiengfei on 15-3-24.
+ */
+
+"use strict";
+var utils = require('./utils');
+var Matrix = require('./Matrix');
+var wvv = require('./wvv');
+var draw = function (dc) {
+    dc.save();
+    var mat = this.rMatrix;
+    //utils.print("mat="+mat);
+    dc.transform(mat.a, mat.c, mat.b, mat.d, mat.tx, mat.ty);
+    this.drawable.draw(dc);
+    dc.restore();
+};
+
+function Element(drawable) {
+    this.tx = this.ty = 0;
+    this.rMatrix = Matrix.create();
+    this.drawable = drawable;
+    this.draw = draw;
+    this.rotationAngle = 0;
+    this.rotationPivotX = this.rotationPivotY = this.scalePivotX = this.scalePivotY = -1;
+    this.scaleX = this.scaleY = 1;
+    var buildMatrix = function (e) {
+        console.log("buildMatrix e="+e);
+        var matrix = e.rMatrix;
+        matrix.identify();
+        matrix.translate(e.scalePivotX, e.scalePivotY);
+        matrix.scale(e.scaleX, e.scaleY);
+        matrix.translate(e.rotationPivotX - e.scalePivotX, e.rotationPivotY - e.scalePivotY);
+        matrix.rotate(e.rotationAngle);
+        matrix.translate(e.tx - e.rotationPivotX, e.ty - e.rotationPivotY);
+    };
+    this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
+        wvv.post(f);
+    }, this);
+};
+
+var p = Element.prototype;
+p.rotate = function (angle) {
+    this.rotationAngle = angle;
+    this.rotationPivotX = this.rotationPivotY = -1;
+    this.delayBuildMatrixFunc();
+};
+
+p.pivotRotate = function (angle, px, py) {
+    this.rotationAngle = angle;
+    this.rotationPivotX = px;
+    this.rotationPivotY = py;
+    this.delayBuildMatrixFunc();
+};
+
+p.scale = function (sx, sy) {
+    this.scaleX = sx;
+    this.scaleY = sy;
+    this.scalePivotX = this.scalePivotY = -1;
+    this.delayBuildMatrixFunc();
+};
+
+p.pivotScale = function (sx, sy, px, py) {
+    this.scaleX = sx;
+    this.scaleY = sy;
+    this.scalePivotX = px;
+    this.scalePivotY = py;
+    this.delayBuildMatrixFunc();
+};
+
+p.setTranslate = function (tx, ty) {
+    this.tx = tx;
+    this.ty = ty;
+    this.delayBuildMatrixFunc();
+};
+
+p.getSize = function () {
+    return this.drawable.getSize();
+};
+
+p.getWidth = function () {
+    return this.drawable.getWidth();
+};
+
+p.getHeight = function () {
+    return this.drawable.getHeight();
+};
+
+p.move = function(tx, ty) {
+    this.tx += tx;
+    this.ty += ty;
+    this.delayBuildMatrixFunc();
+};
+
+p.draw = draw;
+
+module.exports = Element;
+
+
+
+},{"./Matrix":7,"./utils":11,"./wvv":12}],5:[function(require,module,exports){
 "use strict";
 var ADrawable = require('./ADrawable');
 
@@ -289,7 +321,7 @@ Group.prototype.nextLine = function () {
 };
 
 module.exports = Group;
-},{"./utils":10}],7:[function(require,module,exports){
+},{"./utils":11}],7:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-4-13.
  */
@@ -577,10 +609,17 @@ var slice = Array.prototype.slice;
 var Stage = function () {
     this.tx = 0;
     this.ty = 0;
+    this.width = this.height = 0;//will be initialized by wvv.
     this.elements = [];
 };
 
+Stage.prototype.setSize = function(w, h) {
+    this.width = w;
+    this.height = h;
+};
+
 Stage.prototype.draw = function (dc) {
+    dc.clearRect(0, 0, this.width, this.height);
     for (var i = 0, length = this.elements.length; i < length; ++i) {
         var e = this.elements[i];
         e.draw(dc);
@@ -621,23 +660,26 @@ Stage.prototype.resetTranslation = function (x, y) {
     this.ty = y;
 };
 
+Stage.prototype.setSize = function(w, h) {
+    this.width = w;
+    this.height = h;
+};
+
 module.exports = Stage;
 
-},{"./Group":6,"./utils":10}],9:[function(require,module,exports){
+},{"./Group":6,"./utils":11}],9:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-4-13.
  */
-/**
- * Created by jiengfei on 15-3-23.
- */
 var Group = require('./Group');
 var utils = require('./utils');
+var tween = require('./tween');
 function init() {
     var wvv = require('./wvv');
     var Stage = require('./Stage');
     var DrawRecorder = require('./DrawRecorder');
 
-    var Element = require('./AElement');
+    var Element = require('./Element');
     var gdr = new DrawRecorder().beginPath().rect(0, 0, 50, 50).stroke().drawable(50, 50);
     //
     var shape1 = new Element(gdr);
@@ -645,34 +687,77 @@ function init() {
     var shape3 = new Element(gdr);
     //utils.print(shape1);
     shape1.scale(0.5, 0.5);
-    shape2.translate(0, 50);
+    shape2.setTranslate(0, 50);
     shape3.rotate(120);
-    //var group = new Group();
-    //group.add(shape1);
-    //group.skipH(100);
-    //group.add(shape2);
-    //group.nextLine();
-    //group.skipV(100);
-    //group.add(shape3);
-    //var children = group;
-    var children = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
+
+    var group = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
         .skipV(100).add(shape3);
 
-    //utils.print(shape3);
-    //console.log("shape3=" + shape3+";shape3.tx="+shape3.tx);
-
     var stage = new Stage();
-    console.log("main tx=" + stage.tx + ";ty=" + stage.ty);
     wvv.setStage("demoCanvas", stage);
-    console.log("main 2 tx=" + stage.tx + ";ty=" + stage.ty);
-    stage.addGroup(children);
-    console.log("main 3 tx=" + stage.tx + ";ty=" + stage.ty);
+    stage.addGroup(group);
     wvv.gameLoop();
-    console.log("init done");
+    //
+    //tween.get(shape1).to({'tx': 200, 'ty': 200, 'scaleX:': 5}).ease(function (x) {
+    //    return 1 - x * x;
+    //}).duration(1000).start();
 };
 
 init();
-},{"./AElement":2,"./DrawRecorder":4,"./Group":6,"./Stage":8,"./utils":10,"./wvv":11}],10:[function(require,module,exports){
+},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./Stage":8,"./tween":10,"./utils":11,"./wvv":12}],10:[function(require,module,exports){
+/**
+ * Created by jiengfei on 15-3-25.
+ */
+(function() {
+    var DEFAULT_ANIMATION_DURATION = 300;
+
+    var tween = {
+        _registry: [],
+        advance: function() {
+        },
+        get: function(target) {
+            return new Animation(target);
+        }
+    };
+
+    var ease = tween.ease = {
+        linear: function(t) {
+            return t;
+        }
+    };
+
+    function Animation(target) {
+        this._target = target;
+        this._durationMs = DEFAULT_ANIMATION_DURATION;
+        this._ease = ease.linear;
+        this._elapsedMs = 0;
+        this._listeners = [];
+        this._fromProps = null;
+        this._toProps = null;
+    };
+
+    Animation.prototype.to = function(props) {
+
+    };
+
+    Animation.prototype.duration = function(timems) {
+
+    };
+
+    Animation.prototype.ease = function(e) {
+        this._ease = e;
+    };
+
+    Animation.prototype.listener = function(l) {
+        this._listeners.add(l);
+    };
+    Animation.prototype.start = function() {
+
+    };
+
+    module.exports = tween;
+});
+},{}],11:[function(require,module,exports){
 "use strict";
 
 /**
@@ -717,9 +802,23 @@ utils.assert = function (condition, format, a, b, c, d, e, f) {
     }
 };
 
-utils.EmptyFunction = new function(){};
+utils.oncePoster = function (cb, postFunc, arg) {
+    var posted = false;
+    return function () {
+        if (!posted) {
+            posted = true;
+            postFunc(function () {
+                cb(arg);
+                posted = false;
+            });
+        }
+    };
+};
 
-utils.extend = function(obj) {
+utils.EmptyFunction = function () {
+};
+
+utils.extend = function (obj) {
     var length = arguments.length;
     if (length < 2 || obj == null) return obj;
     for (var index = 1; index < length; index++) {
@@ -734,25 +833,25 @@ utils.extend = function(obj) {
     return obj;
 };
 
-utils.isObject = function(obj) {
+utils.isObject = function (obj) {
     var type = typeof obj;
     return type === 'function' || type === 'object' && !!obj;
 };
 
-utils.clone = function(obj) {
+utils.clone = function (obj) {
     if (!utils.isObject(obj)) return obj;
     return Array.isArray(obj) ? obj.slice() : utils.extend({}, obj);
 };
 
-utils.print = function(obj) {
-  for (var key in obj) {
-      console.log("{"+key+":"+obj[key]+"}");
-  }
+utils.print = function (obj) {
+    for (var key in obj) {
+        console.log("{" + key + ":" + obj[key] + "}");
+    }
 };
 
 module.exports = utils;
 
-},{"./CONFIG":3}],11:[function(require,module,exports){
+},{"./CONFIG":2}],12:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-23.
  */
@@ -779,19 +878,34 @@ module.exports = utils;
     wvv.setStage = function (layerId, stage) {
         var canvas = document.getElementById(layerId);
         var dc = canvas.getContext('2d');
+        stage.setSize(canvas.width, canvas.height);
         _delegateTouchEventToStage(canvas, stage);
         _layers.push([layerId, stage, canvas, dc, defaultFlags]);
     };
 
     var callbacks = [];
+    var onceCallback = [];
     wvv.post = function(cb) {
+        onceCallback.push(cb);
+    };
+    wvv.registerCb = function(cb) {
         callbacks.push(cb);
     };
-
-    var _handleCallbacks = function() {
-        for (var i = 0, length = callbacks.length; i < length; ++i) {
-            callbacks[i]();
+    wvv.unRegisterCb = function(cb) {
+        var index = callbacks.indexOf(cb);
+        if (index >= 0) {
+            callbacks.splice(index, 1);
         }
+    };
+
+    var invokeFunction = function (f) {
+        f();
+    };
+    var _handleCallbacks = function() {
+        callbacks.forEach(invokeFunction);
+        var ocbs = onceCallback;
+        onceCallback = [];
+        ocbs.forEach(invokeFunction);
     };
 
     var _render = function() {
@@ -808,7 +922,6 @@ module.exports = utils;
     wvv.gameLoop = function() {
         (function _loop() {
             _handleCallbacks();
-            console.log("rendering");
             _render();
             if (devEnv) {
                 window.setTimeout(_loop, 10000);
@@ -821,4 +934,4 @@ module.exports = utils;
     module.exports = wvv;
 
 }());
-},{"./CONFIG":3}]},{},[9]);
+},{"./CONFIG":2}]},{},[9]);
