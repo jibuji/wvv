@@ -70,7 +70,7 @@
             _handleCallbacks();
             _render();
             if (devEnv) {
-                window.setTimeout(_loop, 10000);
+                window.setTimeout(_loop, 100);
             } else {
                 window.requestAnimationFrame(_loop, null);
             }

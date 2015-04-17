@@ -10,13 +10,13 @@ var EmptyFunc = utils.EmptyFunction;
 
 function ADrawable() {
     this.width = this.height = 0;
-    this.scaleX = this.scaleY = 1;
+    this.sx = this.sy = 1;
 };
 
 var p = ADrawable.prototype;
 p.scale = function (scaleX, scaleY) {
-    this.scaleX *= scaleX;
-    this.scaleY *= scaleY;
+    this.sx *= scaleX;
+    this.sy *= scaleY;
 };
 p.getSize = function () {
     return {
@@ -38,7 +38,7 @@ module.exports = ADrawable;
  * Created by jiengfei on 15-3-24.
  */
 var CONFIG = {
-    DEV: true
+    DEV: false
 };
 
 module.exports = CONFIG;
@@ -130,18 +130,30 @@ function Element(drawable) {
     this.rMatrix = Matrix.create();
     this.drawable = drawable;
     this.draw = draw;
-    this.rotationAngle = 0;
-    this.rotationPivotX = this.rotationPivotY = this.scalePivotX = this.scalePivotY = -1;
-    this.scaleX = this.scaleY = 1;
+    this.r = 0;
+    this.rpx = this.rpy = this.spx = this.spy = -1;
+    this.sx = this.sy = 1;
     var buildMatrix = function (e) {
-        console.log("buildMatrix e="+e);
         var matrix = e.rMatrix;
         matrix.identify();
-        matrix.translate(e.scalePivotX, e.scalePivotY);
-        matrix.scale(e.scaleX, e.scaleY);
-        matrix.translate(e.rotationPivotX - e.scalePivotX, e.rotationPivotY - e.scalePivotY);
-        matrix.rotate(e.rotationAngle);
-        matrix.translate(e.tx - e.rotationPivotX, e.ty - e.rotationPivotY);
+        var size = e.getSize();
+        var cx = size.width / 2;
+        var cy = size.height / 2;
+
+        var spx = e.spx > 0 ? e.spx : 0;
+        var spy = e.spy > 0 ? e.spy : 0;
+        var rpx = e.rpx > 0 ? e.rpx : cx;
+        var rpy = e.rpy > 0 ? e.rpy : cy;
+
+        console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
+        matrix.translate(rpx, rpy);
+        matrix.rotate(e.r);
+        matrix.translate(e.tx -e.rpx, e.ty-e.rpy);
+        //matrix.translate(spx, spy);
+        //matrix.scale(e.sx, e.sy);
+        //matrix.translate(rpx - spx, rpy - spy);
+        //matrix.rotate(e.r);
+        //matrix.translate(e.tx - rpx, e.ty - rpy);
     };
     this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
         wvv.post(f);
@@ -150,30 +162,30 @@ function Element(drawable) {
 
 var p = Element.prototype;
 p.rotate = function (angle) {
-    this.rotationAngle = angle;
-    this.rotationPivotX = this.rotationPivotY = -1;
+    this.r = angle;
+    this.rpx = this.rpy = -1;
     this.delayBuildMatrixFunc();
 };
 
 p.pivotRotate = function (angle, px, py) {
-    this.rotationAngle = angle;
-    this.rotationPivotX = px;
-    this.rotationPivotY = py;
+    this.r = angle;
+    this.rpx = px;
+    this.rpy = py;
     this.delayBuildMatrixFunc();
 };
 
 p.scale = function (sx, sy) {
-    this.scaleX = sx;
-    this.scaleY = sy;
-    this.scalePivotX = this.scalePivotY = -1;
+    this.sx = sx;
+    this.sy = sy;
+    this.spx = this.spy = -1;
     this.delayBuildMatrixFunc();
 };
 
 p.pivotScale = function (sx, sy, px, py) {
-    this.scaleX = sx;
-    this.scaleY = sy;
-    this.scalePivotX = px;
-    this.scalePivotY = py;
+    this.sx = sx;
+    this.sy = sy;
+    this.spx = px;
+    this.spy = py;
     this.delayBuildMatrixFunc();
 };
 
@@ -215,8 +227,8 @@ function GraphicsDrawable(w, h, drawFunc) {
     ADrawable.apply(this);
     var thisObj = this;
     this.draw = function (dc) {
-        var sx = thisObj.scaleX;
-        var sy = thisObj.scaleY;
+        var sx = thisObj.sx;
+        var sy = thisObj.sy;
         dc.scale(sx, sy);
         drawFunc(dc);
         dc.scale(1 / sx, 1 / sy);
@@ -672,10 +684,9 @@ module.exports = Stage;
  * Created by jiengfei on 15-4-13.
  */
 var Group = require('./Group');
-var utils = require('./utils');
+var wvv = require('./wvv');
 var tween = require('./tween');
 function init() {
-    var wvv = require('./wvv');
     var Stage = require('./Stage');
     var DrawRecorder = require('./DrawRecorder');
 
@@ -686,9 +697,9 @@ function init() {
     var shape2 = new Element(gdr);
     var shape3 = new Element(gdr);
     //utils.print(shape1);
-    shape1.scale(0.5, 0.5);
-    shape2.setTranslate(0, 50);
-    shape3.rotate(120);
+    //shape1.scale(0.5, 0.5);
+    //shape2.setTranslate(0, 50);
+    //shape3.rotate(120);
 
     var group = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
         .skipV(100).add(shape3);
@@ -697,67 +708,132 @@ function init() {
     wvv.setStage("demoCanvas", stage);
     stage.addGroup(group);
     wvv.gameLoop();
-    //
-    //tween.get(shape1).to({'tx': 200, 'ty': 200, 'scaleX:': 5}).ease(function (x) {
-    //    return 1 - x * x;
+    //convert to radian
+    tween.get(shape1).to({"r": 180 * Math.PI / 180}).ease(function (x) {
+        return x;
+    }).duration(10000).start();
+    //tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5}).ease(function (x) {
+    //    return x;
     //}).duration(1000).start();
 };
 
 init();
-},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./Stage":8,"./tween":10,"./utils":11,"./wvv":12}],10:[function(require,module,exports){
+},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./Stage":8,"./tween":10,"./wvv":12}],10:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-25.
  */
-(function() {
-    var DEFAULT_ANIMATION_DURATION = 300;
+var utils = require('./utils');
+var wvv = require('./wvv');
 
-    var tween = {
-        _registry: [],
-        advance: function() {
-        },
-        get: function(target) {
-            return new Animation(target);
+var DEFAULT_ANIMATION_DURATION = 300;
+
+var _animations = [];
+
+var _advance = function () {
+    _animations.forEach(function (a) {
+        a.advance();
+    });
+};
+wvv.registerCb(_advance);
+
+var tween = {
+    addHeartbeat: function (anim) {
+        _animations.push(anim);
+    },
+    removeHeartbeat: function (anim) {
+        utils.removeFromArray(_animations, anim);
+    },
+    get: function (target) {
+        return new Animation(target);
+    }
+};
+
+var ease = tween.ease = {
+    linear: function (t) {
+        return t;
+    }
+};
+
+function Animation(target) {
+    this._target = target;
+    this._durationMs = DEFAULT_ANIMATION_DURATION;
+    this._ease = ease.linear;
+    this._listeners = [];
+    this._fromProps = null;
+    this._toProps = null;
+    this._animatedKeys = null;
+    this._animatedValues = null;
+    this._startTimeMs = 0;
+    this.advance = function () {
+        utils.assert(this instanceof Animation, "this = %s", this);
+        var progress = (utils.nowMs() - this._startTimeMs) / this._durationMs;
+        if (progress >= 1) {
+            progress = 1;
+            tween.removeHeartbeat(this);
         }
-    };
-
-    var ease = tween.ease = {
-        linear: function(t) {
-            return t;
+        progress = this._ease(progress);
+        var keys = this._animatedKeys;
+        var values = this._animatedValues;
+        var target = this._target;
+        for (var index = 0, length = keys.length; index < length; ++index) {
+            var pair = values[index];
+            var curValue = (pair[1] - pair[0]) * progress + pair[0];
+            target[keys[index]] = curValue;
         }
+        target.delayBuildMatrixFunc();
     };
+};
 
-    function Animation(target) {
-        this._target = target;
-        this._durationMs = DEFAULT_ANIMATION_DURATION;
-        this._ease = ease.linear;
-        this._elapsedMs = 0;
-        this._listeners = [];
-        this._fromProps = null;
-        this._toProps = null;
-    };
+Animation.prototype.to = function (props) {
+    this._toProps = props;
+    return this;
+};
 
-    Animation.prototype.to = function(props) {
+Animation.prototype.duration = function (timems) {
+    this._durationMs = timems;
+    return this;
+};
 
-    };
+Animation.prototype.ease = function (e) {
+    this._ease = e;
+    return this;
+};
 
-    Animation.prototype.duration = function(timems) {
+//TODO
+Animation.prototype.listener = function (l) {
+    this._listeners.add(l);
+    return this;
+};
 
-    };
+Animation.prototype.start = function () {
+    var useCurValue = false;
+    var fromProps = this._fromProps;
+    if (!fromProps) {
+        useCurValue = true;
+    }
 
-    Animation.prototype.ease = function(e) {
-        this._ease = e;
-    };
+    var toProps = this._toProps;
+    var target = this._target;
+    var animatedKeys = this._animatedKeys = [];
+    var animatedValues = this._animatedValues = [];
+    var keys = Object.keys(toProps);
+    utils.print(keys);
+    for (var index = 0, length = keys.length; index < length; ++index) {
+        var key = keys[index];
+        if (target.hasOwnProperty(key)) {
+            var toValue = toProps[key];
+            var fromValue = useCurValue ? target[key] : fromProps[key];
+            animatedKeys.push(key);
+            animatedValues.push([fromValue, toValue]);
+        }
+    }
+    this._startTimeMs = utils.nowMs();
+    //add this to advance list
+    tween.addHeartbeat(this);
+};
 
-    Animation.prototype.listener = function(l) {
-        this._listeners.add(l);
-    };
-    Animation.prototype.start = function() {
-
-    };
-
-    module.exports = tween;
-});
-},{}],11:[function(require,module,exports){
+module.exports = tween;
+},{"./utils":11,"./wvv":12}],11:[function(require,module,exports){
 "use strict";
 
 /**
@@ -849,6 +925,21 @@ utils.print = function (obj) {
     }
 };
 
+utils.nowMs = function () {
+  return Date.now();
+};
+
+utils.removeFromArray = function(arr, elem) {
+    var index = arr.indexOf(elem);
+    if (index >= 0) {
+        arr.splice(index, 1);
+    }
+};
+
+utils.radian = function(angle) {
+    return angle * Math.PI / 180;
+};
+
 module.exports = utils;
 
 },{"./CONFIG":2}],12:[function(require,module,exports){
@@ -924,7 +1015,7 @@ module.exports = utils;
             _handleCallbacks();
             _render();
             if (devEnv) {
-                window.setTimeout(_loop, 10000);
+                window.setTimeout(_loop, 100);
             } else {
                 window.requestAnimationFrame(_loop, null);
             }

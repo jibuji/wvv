@@ -89,4 +89,19 @@ utils.print = function (obj) {
     }
 };
 
+utils.nowMs = function () {
+  return Date.now();
+};
+
+utils.removeFromArray = function(arr, elem) {
+    var index = arr.indexOf(elem);
+    if (index >= 0) {
+        arr.splice(index, 1);
+    }
+};
+
+utils.radian = function(angle) {
+    return angle * Math.PI / 180;
+};
+
 module.exports = utils;

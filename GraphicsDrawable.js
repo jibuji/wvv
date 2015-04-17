@@ -5,8 +5,8 @@ function GraphicsDrawable(w, h, drawFunc) {
     ADrawable.apply(this);
     var thisObj = this;
     this.draw = function (dc) {
-        var sx = thisObj.scaleX;
-        var sy = thisObj.scaleY;
+        var sx = thisObj.sx;
+        var sy = thisObj.sy;
         dc.scale(sx, sy);
         drawFunc(dc);
         dc.scale(1 / sx, 1 / sy);
