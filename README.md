@@ -1,5 +1,5 @@
 ## wvv
-#0.01版本，简要想法如下：
+#0.02版本，简要想法如下：
 ```
 Graphics包含绘制的常用函数
 Shape, Image, Text是三种基本的Element，Stage里面直接是Element，Group起到给Stage布局的作用
@@ -36,3 +36,11 @@ npm install -g browserify
 构建命令：
 browserify main.js > bin/bundle.js
 用浏览器打开t2.html即可预览demo。
+
+
+
+#版本回顾：
+0.0.1版本 4月16日
+  基础框架
+0.0.2版本 4月18日
+  添加动画机制，增加tween.js类
