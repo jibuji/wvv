@@ -120,7 +120,7 @@ var draw = function (dc) {
     dc.save();
     var mat = this.rMatrix;
     //utils.print("mat="+mat);
-    dc.transform(mat.a, mat.c, mat.b, mat.d, mat.tx, mat.ty);
+    dc.transform(mat.a, mat.b, mat.c, mat.d, mat.tx, mat.ty);
     this.drawable.draw(dc);
     dc.restore();
 };
@@ -146,14 +146,14 @@ function Element(drawable) {
         var rpy = e.rpy > 0 ? e.rpy : cy;
 
         console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
-        matrix.translate(rpx, rpy);
-        matrix.rotate(e.r);
-        matrix.translate(e.tx -e.rpx, e.ty-e.rpy);
-        //matrix.translate(spx, spy);
-        //matrix.scale(e.sx, e.sy);
-        //matrix.translate(rpx - spx, rpy - spy);
+        //matrix.translate(e.tx + rpx, e.tx + rpy);
         //matrix.rotate(e.r);
-        //matrix.translate(e.tx - rpx, e.ty - rpy);
+        //matrix.translate(-rpx, -rpy);
+        matrix.translate(e.tx + rpx, e.ty + rpy);
+        matrix.rotate(e.r);
+        matrix.translate(spx - rpx, spy - rpy);
+        matrix.scale(e.sx, e.sy);
+        matrix.translate(- spx, - spy);
     };
     this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
         wvv.post(f);
@@ -230,19 +230,9 @@ function GraphicsDrawable(w, h, drawFunc) {
     this.draw = function (dc) {
         var sx = thisObj.sx;
         var sy = thisObj.sy;
-        //dc.scale(sx, sy);
-        var cx = w /2;
-        var cy = h /2;
-        mat.identify();
-
-        mat.translate(cx, cy); // translate to rectangle center
-        // x = x + 0.5 * width
-        // y = y + 0.5 * height
-        mat.rotate((Math.PI/180)*90); // rotate
-        mat.translate(-cx, -cy); // translate back
-        dc.transform(mat.a, mat.c, mat.b, mat.d, mat.tx, mat.ty);
+        dc.scale(sx, sy);
         drawFunc(dc);
-        //dc.scale(1 / sx, 1 / sy);
+        dc.scale(1 / sx, 1 / sy);
     };
     this.width = w;
     this.height = h;
@@ -345,282 +335,560 @@ Group.prototype.nextLine = function () {
 
 module.exports = Group;
 },{"./utils":11}],7:[function(require,module,exports){
-/**
- * Created by jiengfei on 15-4-13.
+/*
+ * Matrix2D
+ * Visit http://createjs.com/ for documentation, updates and examples.
+ *
+ * Copyright (c) 2010 gskinner.com, inc.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
+
 /**
- * @author Mat Groves http://matgroves.com/ @Doormat23
+ * @module EaselJS
  */
 
+// namespace:
 
-(function () {
+
+// constructor:
+/**
+ * Represents an affine transformation matrix, and provides tools for constructing and concatenating matrices.
+ *
+ * This matrix can be visualized as:
+ *
+ *    [ a  c  tx
+ *      b  d  ty
+ *      0  0  1  ]
+ *
+ * Note the locations of b and c.
+ *
+ * @class Matrix2D
+ * @param {Number} [a=1] Specifies the a property for the new matrix.
+ * @param {Number} [b=0] Specifies the b property for the new matrix.
+ * @param {Number} [c=0] Specifies the c property for the new matrix.
+ * @param {Number} [d=1] Specifies the d property for the new matrix.
+ * @param {Number} [tx=0] Specifies the tx property for the new matrix.
+ * @param {Number} [ty=0] Specifies the ty property for the new matrix.
+ * @constructor
+ **/
+function Matrix2D(a, b, c, d, tx, ty) {
+    this.setValues(a, b, c, d, tx, ty);
+
+    // public properties:
+    // assigned in the setValues method.
     /**
-     * The Matrix class is now an object, which makes it a lot faster,
-     * here is a representation of it :
-     * | a | b | tx|
-     * | c | d | ty|
-     * | 0 | 0 | 1 |
-     *
-     * @class Matrix
-     * @constructor
-     */
-    var Matrix = function () {
-        /**
-         * @property a
-         * @type Number
-         * @default 1
-         */
-        this.a = 1;
-
-        /**
-         * @property b
-         * @type Number
-         * @default 0
-         */
-        this.b = 0;
-
-        /**
-         * @property c
-         * @type Number
-         * @default 0
-         */
-        this.c = 0;
-
-        /**
-         * @property d
-         * @type Number
-         * @default 1
-         */
-        this.d = 1;
-
-        /**
-         * @property tx
-         * @type Number
-         * @default 0
-         */
-        this.tx = 0;
-
-        /**
-         * @property ty
-         * @type Number
-         * @default 0
-         */
-        this.ty = 0;
-    };
-
-    /**
-     * Creates a Matrix object based on the given array. The Element to Matrix mapping order is as follows:
-     *
-     * a = array[0]
-     * b = array[1]
-     * c = array[3]
-     * d = array[4]
-     * tx = array[2]
-     * ty = array[5]
-     *
-     * @method fromArray
-     * @param array {Array} The array that the matrix will be populated from.
-     */
-    var fromArray = Matrix.prototype.fromArray = function (array) {
-        this.a = array[0];
-        this.b = array[1];
-        this.c = array[3];
-        this.d = array[4];
-        this.tx = array[2];
-        this.ty = array[5];
-    };
-
-    /**
-     * Creates an array from the current Matrix object.
-     *
-     * @method toArray
-     * @param transpose {Boolean} Whether we need to transpose the matrix or not
-     * @return {Array} the newly created array which contains the matrix
-     */
-    Matrix.prototype.toArray = function (transpose) {
-        if (!this.array) this.array = new Float32Array(9);
-        var array = this.array;
-
-        if (transpose) {
-            array[0] = this.a;
-            array[1] = this.b;
-            array[2] = 0;
-            array[3] = this.c;
-            array[4] = this.d;
-            array[5] = 0;
-            array[6] = this.tx;
-            array[7] = this.ty;
-            array[8] = 1;
-        }
-        else {
-            array[0] = this.a;
-            array[1] = this.c;
-            array[2] = this.tx;
-            array[3] = this.b;
-            array[4] = this.d;
-            array[5] = this.ty;
-            array[6] = 0;
-            array[7] = 0;
-            array[8] = 1;
-        }
-
-        return array;
-    };
-
-    /**
-     * Get a new position with the current transformation applied.
-     * Can be used to go from a child's coordinate space to the world coordinate space. (e.g. rendering)
-     *
-     * @method apply
-     * @param pos {Point} The origin
-     * @param [newPos] {Point} The point that the new position is assigned to (allowed to be same as input)
-     * @return {Point} The new point, transformed through this matrix
-     */
-    Matrix.prototype.apply = function (pos, newPos) {
-        newPos = newPos || {}
-
-        newPos.x = this.a * pos.x + this.c * pos.y + this.tx;
-        newPos.y = this.b * pos.x + this.d * pos.y + this.ty;
-
-        return newPos;
-    };
-
-    /**
-     * Get a new position with the inverse of the current transformation applied.
-     * Can be used to go from the world coordinate space to a child's coordinate space. (e.g. input)
-     *
-     * @method applyInverse
-     * @param pos {Point} The origin
-     * @param [newPos] {Point} The point that the new position is assigned to (allowed to be same as input)
-     * @return {Point} The new point, inverse-transformed through this matrix
-     */
-    Matrix.prototype.applyInverse = function (pos, newPos) {
-        newPos = newPos || {}
-
-        var id = 1 / (this.a * this.d + this.c * -this.b);
-
-        newPos.x = this.d * id * pos.x + -this.c * id * pos.y + (this.ty * this.c - this.tx * this.d) * id;
-        newPos.y = this.a * id * pos.y + -this.b * id * pos.x + (-this.ty * this.a + this.tx * this.b) * id;
-
-        return newPos;
-    };
-
-    /**
-     * Translates the matrix on the x and y.
-     *
-     * @method translate
-     * @param {Number} x
-     * @param {Number} y
-     * @return {Matrix} This matrix. Good for chaining method calls.
+     * Position (0, 0) in a 3x3 affine transformation matrix.
+     * @property a
+     * @type Number
      **/
-    Matrix.prototype.translate = function (x, y) {
-        this.tx += x;
-        this.ty += y;
-
-        return this;
-    };
 
     /**
-     * Applies a scale transformation to the matrix.
-     *
-     * @method scale
-     * @param {Number} x The amount to scale horizontally
-     * @param {Number} y The amount to scale vertically
-     * @return {Matrix} This matrix. Good for chaining method calls.
+     * Position (0, 1) in a 3x3 affine transformation matrix.
+     * @property b
+     * @type Number
      **/
-    Matrix.prototype.scale = function (x, y) {
-        this.a *= x;
-        this.d *= y;
-        this.c *= x;
-        this.b *= y;
-        this.tx *= x;
-        this.ty *= y;
-
-        return this;
-    };
-
 
     /**
-     * Applies a rotation transformation to the matrix.
-     * @method rotate
-     * @param {Number} angle The angle in radians.
-     * @return {Matrix} This matrix. Good for chaining method calls.
+     * Position (1, 0) in a 3x3 affine transformation matrix.
+     * @property c
+     * @type Number
      **/
-    Matrix.prototype.rotate = function (angle) {
-        var cos = Math.cos(angle);
-        var sin = Math.sin(angle);
-
-        var a1 = this.a;
-        var c1 = this.c;
-        var tx1 = this.tx;
-
-        this.a = a1 * cos - this.b * sin;
-        this.b = a1 * sin + this.b * cos;
-        this.c = c1 * cos - this.d * sin;
-        this.d = c1 * sin + this.d * cos;
-        this.tx = tx1 * cos - this.ty * sin;
-        this.ty = tx1 * sin + this.ty * cos;
-
-        return this;
-    };
 
     /**
-     * Appends the given Matrix to this Matrix.
-     *
-     * @method append
-     * @param {Matrix} matrix
-     * @return {Matrix} This matrix. Good for chaining method calls.
-     */
-    Matrix.prototype.append = function (matrix) {
-        var a1 = this.a;
-        var b1 = this.b;
-        var c1 = this.c;
-        var d1 = this.d;
-
-        this.a = matrix.a * a1 + matrix.b * c1;
-        this.b = matrix.a * b1 + matrix.b * d1;
-        this.c = matrix.c * a1 + matrix.d * c1;
-        this.d = matrix.c * b1 + matrix.d * d1;
-
-        this.tx = matrix.tx * a1 + matrix.ty * c1 + this.tx;
-        this.ty = matrix.tx * b1 + matrix.ty * d1 + this.ty;
-
-        return this;
-    };
+     * Position (1, 1) in a 3x3 affine transformation matrix.
+     * @property d
+     * @type Number
+     **/
 
     /**
-     * Resets this Matix to an identity (default) matrix.
-     *
-     * @method identity
-     * @return {Matrix} This matrix. Good for chaining method calls.
-     */
-    Matrix.prototype.identify = function () {
-        this.a = 1;
-        this.b = 0;
-        this.c = 0;
-        this.d = 1;
-        this.tx = 0;
-        this.ty = 0;
+     * Position (2, 0) in a 3x3 affine transformation matrix.
+     * @property tx
+     * @type Number
+     **/
 
-        return this;
-    };
+    /**
+     * Position (2, 1) in a 3x3 affine transformation matrix.
+     * @property ty
+     * @type Number
+     **/
+}
+var p = Matrix2D.prototype;
 
-    var identityMatrix = new Matrix();
+/**
+ * <strong>REMOVED</strong>. Removed in favor of using `MySuperClass_constructor`.
+ * See {{#crossLink "Utility Methods/extend"}}{{/crossLink}} and {{#crossLink "Utility Methods/promote"}}{{/crossLink}}
+ * for details.
+ *
+ * There is an inheritance tutorial distributed with EaselJS in /tutorials/Inheritance.
+ *
+ * @method initialize
+ * @protected
+ * @deprecated
+ */
+// p.initialize = function() {}; // searchable for devs wondering where it is.
 
-    module.exports = {
-        identityMatrix: identityMatrix,
-        create:  function() {
-            var m = new Matrix();
-            if (arguments.length < 1) {
-                return m;
-            }
-            fromArray.apply(m, arguments);
-            return m;
+
+// constants:
+/**
+ * Multiplier for converting degrees to radians. Used internally by Matrix2D.
+ * @property DEG_TO_RAD
+ * @static
+ * @final
+ * @type Number
+ * @readonly
+ **/
+Matrix2D.DEG_TO_RAD = Math.PI / 180;
+
+
+// static public properties:
+/**
+ * An identity matrix, representing a null transformation.
+ * @property identity
+ * @static
+ * @type Matrix2D
+ * @readonly
+ **/
+Matrix2D.identity = null; // set at bottom of class definition.
+
+
+// public methods:
+/**
+ * Sets the specified values on this instance.
+ * @method setValues
+ * @param {Number} [a=1] Specifies the a property for the new matrix.
+ * @param {Number} [b=0] Specifies the b property for the new matrix.
+ * @param {Number} [c=0] Specifies the c property for the new matrix.
+ * @param {Number} [d=1] Specifies the d property for the new matrix.
+ * @param {Number} [tx=0] Specifies the tx property for the new matrix.
+ * @param {Number} [ty=0] Specifies the ty property for the new matrix.
+ * @return {Matrix2D} This instance. Useful for chaining method calls.
+ */
+p.setValues = function (a, b, c, d, tx, ty) {
+    // don't forget to update docs in the constructor if these change:
+    this.a = (a == null) ? 1 : a;
+    this.b = b || 0;
+    this.c = c || 0;
+    this.d = (d == null) ? 1 : d;
+    this.tx = tx || 0;
+    this.ty = ty || 0;
+    return this;
+};
+
+/**
+ * Appends the specified matrix properties to this matrix. All parameters are required.
+ * This is the equivalent of multiplying `(this matrix) * (specified matrix)`.
+ * @method append
+ * @param {Number} a
+ * @param {Number} b
+ * @param {Number} c
+ * @param {Number} d
+ * @param {Number} tx
+ * @param {Number} ty
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.append = function (a, b, c, d, tx, ty) {
+    var a1 = this.a;
+    var b1 = this.b;
+    var c1 = this.c;
+    var d1 = this.d;
+    if (a != 1 || b != 0 || c != 0 || d != 1) {
+        this.a = a1 * a + c1 * b;
+        this.b = b1 * a + d1 * b;
+        this.c = a1 * c + c1 * d;
+        this.d = b1 * c + d1 * d;
+    }
+    this.tx = a1 * tx + c1 * ty + this.tx;
+    this.ty = b1 * tx + d1 * ty + this.ty;
+    return this;
+};
+
+/**
+ * Prepends the specified matrix properties to this matrix.
+ * This is the equivalent of multiplying `(specified matrix) * (this matrix)`.
+ * All parameters are required.
+ * @method prepend
+ * @param {Number} a
+ * @param {Number} b
+ * @param {Number} c
+ * @param {Number} d
+ * @param {Number} tx
+ * @param {Number} ty
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.prepend = function (a, b, c, d, tx, ty) {
+    var a1 = this.a;
+    var c1 = this.c;
+    var tx1 = this.tx;
+
+    this.a = a * a1 + c * this.b;
+    this.b = b * a1 + d * this.b;
+    this.c = a * c1 + c * this.d;
+    this.d = b * c1 + d * this.d;
+    this.tx = a * tx1 + c * this.ty + tx;
+    this.ty = b * tx1 + d * this.ty + ty;
+    return this;
+};
+
+/**
+ * Appends the specified matrix to this matrix.
+ * This is the equivalent of multiplying `(this matrix) * (specified matrix)`.
+ * @method appendMatrix
+ * @param {Matrix2D} matrix
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.appendMatrix = function (matrix) {
+    return this.append(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty);
+};
+
+/**
+ * Prepends the specified matrix to this matrix.
+ * This is the equivalent of multiplying `(specified matrix) * (this matrix)`.
+ * For example, you could calculate the combined transformation for a child object using:
+ *
+ *    var o = myDisplayObject;
+ *    var mtx = o.getMatrix();
+ *    while (o = o.parent) {
+	 * 		// prepend each parent's transformation in turn:
+	 * 		o.prependMatrix(o.getMatrix());
+	 * 	}
+ * @method prependMatrix
+ * @param {Matrix2D} matrix
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.prependMatrix = function (matrix) {
+    return this.prepend(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty);
+};
+
+/**
+ * Generates matrix properties from the specified display object transform properties, and appends them to this matrix.
+ * For example, you can use this to generate a matrix representing the transformations of a display object:
+ *
+ *    var mtx = new Matrix2D();
+ *    mtx.appendTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation);
+ * @method appendTransform
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Number} scaleX
+ * @param {Number} scaleY
+ * @param {Number} rotation
+ * @param {Number} skewX
+ * @param {Number} skewY
+ * @param {Number} regX Optional.
+ * @param {Number} regY Optional.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.appendTransform = function (x, y, scaleX, scaleY, rotation, skewX, skewY, regX, regY) {
+    if (rotation % 360) {
+        var r = rotation * Matrix2D.DEG_TO_RAD;
+        var cos = Math.cos(r);
+        var sin = Math.sin(r);
+    } else {
+        cos = 1;
+        sin = 0;
+    }
+
+    if (skewX || skewY) {
+        // TODO: can this be combined into a single append operation?
+        skewX *= Matrix2D.DEG_TO_RAD;
+        skewY *= Matrix2D.DEG_TO_RAD;
+        this.append(Math.cos(skewY), Math.sin(skewY), -Math.sin(skewX), Math.cos(skewX), x, y);
+        this.append(cos * scaleX, sin * scaleX, -sin * scaleY, cos * scaleY, 0, 0);
+    } else {
+        this.append(cos * scaleX, sin * scaleX, -sin * scaleY, cos * scaleY, x, y);
+    }
+
+    if (regX || regY) {
+        // append the registration offset:
+        this.tx -= regX * this.a + regY * this.c;
+        this.ty -= regX * this.b + regY * this.d;
+    }
+    return this;
+};
+
+/**
+ * Generates matrix properties from the specified display object transform properties, and prepends them to this matrix.
+ * For example, you could calculate the combined transformation for a child object using:
+ *
+ *    var o = myDisplayObject;
+ *    var mtx = new createjs.Matrix2D();
+ *    do  {
+	 * 		// prepend each parent's transformation in turn:
+	 * 		mtx.prependTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation, o.skewX, o.skewY, o.regX, o.regY);
+	 * 	} while (o = o.parent);
+ *
+ *    Note that the above example would not account for {{#crossLink "DisplayObject/transformMatrix:property"}}{{/crossLink}}
+ *    values. See {{#crossLink "Matrix2D/prependMatrix"}}{{/crossLink}} for an example that does.
+ * @method prependTransform
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Number} scaleX
+ * @param {Number} scaleY
+ * @param {Number} rotation
+ * @param {Number} skewX
+ * @param {Number} skewY
+ * @param {Number} regX Optional.
+ * @param {Number} regY Optional.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.prependTransform = function (x, y, scaleX, scaleY, rotation, skewX, skewY, regX, regY) {
+    if (rotation % 360) {
+        var r = rotation * Matrix2D.DEG_TO_RAD;
+        var cos = Math.cos(r);
+        var sin = Math.sin(r);
+    } else {
+        cos = 1;
+        sin = 0;
+    }
+
+    if (regX || regY) {
+        // prepend the registration offset:
+        this.tx -= regX;
+        this.ty -= regY;
+    }
+    if (skewX || skewY) {
+        // TODO: can this be combined into a single prepend operation?
+        skewX *= Matrix2D.DEG_TO_RAD;
+        skewY *= Matrix2D.DEG_TO_RAD;
+        this.prepend(cos * scaleX, sin * scaleX, -sin * scaleY, cos * scaleY, 0, 0);
+        this.prepend(Math.cos(skewY), Math.sin(skewY), -Math.sin(skewX), Math.cos(skewX), x, y);
+    } else {
+        this.prepend(cos * scaleX, sin * scaleX, -sin * scaleY, cos * scaleY, x, y);
+    }
+    return this;
+};
+
+/**
+ * Applies a clockwise rotation transformation to the matrix.
+ * @method rotate
+ * @param {Number} angle The angle to rotate by, in degrees. To use a value in radians, multiply it by `180/Math.PI`.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.rotate = function (angle) {
+    angle = angle * Matrix2D.DEG_TO_RAD;
+    var cos = Math.cos(angle);
+    var sin = Math.sin(angle);
+
+    var a1 = this.a;
+    var b1 = this.b;
+
+    this.a = a1 * cos + this.c * sin;
+    this.b = b1 * cos + this.d * sin;
+    this.c = -a1 * sin + this.c * cos;
+    this.d = -b1 * sin + this.d * cos;
+    return this;
+};
+
+/**
+ * Applies a skew transformation to the matrix.
+ * @method skew
+ * @param {Number} skewX The amount to skew horizontally in degrees. To use a value in radians, multiply it by `180/Math.PI`.
+ * @param {Number} skewY The amount to skew vertically in degrees.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ */
+p.skew = function (skewX, skewY) {
+    skewX = skewX * Matrix2D.DEG_TO_RAD;
+    skewY = skewY * Matrix2D.DEG_TO_RAD;
+    this.append(Math.cos(skewY), Math.sin(skewY), -Math.sin(skewX), Math.cos(skewX), 0, 0);
+    return this;
+};
+
+/**
+ * Applies a scale transformation to the matrix.
+ * @method scale
+ * @param {Number} x The amount to scale horizontally. E.G. a value of 2 will double the size in the X direction, and 0.5 will halve it.
+ * @param {Number} y The amount to scale vertically.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.scale = function (x, y) {
+    this.a *= x;
+    this.b *= x;
+    this.c *= y;
+    this.d *= y;
+    //this.tx *= x;
+    //this.ty *= y;
+    return this;
+};
+
+/**
+ * Translates the matrix on the x and y axes.
+ * @method translate
+ * @param {Number} x
+ * @param {Number} y
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.translate = function (x, y) {
+    this.tx += this.a * x + this.c * y;
+    this.ty += this.b * x + this.d * y;
+    return this;
+};
+
+/**
+ * Sets the properties of the matrix to those of an identity matrix (one that applies a null transformation).
+ * @method identity
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.identity = function () {
+    this.a = this.d = 1;
+    this.b = this.c = this.tx = this.ty = 0;
+    return this;
+};
+
+/**
+ * Inverts the matrix, causing it to perform the opposite transformation.
+ * @method invert
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ **/
+p.invert = function () {
+    var a1 = this.a;
+    var b1 = this.b;
+    var c1 = this.c;
+    var d1 = this.d;
+    var tx1 = this.tx;
+    var n = a1 * d1 - b1 * c1;
+
+    this.a = d1 / n;
+    this.b = -b1 / n;
+    this.c = -c1 / n;
+    this.d = a1 / n;
+    this.tx = (c1 * this.ty - d1 * tx1) / n;
+    this.ty = -(a1 * this.ty - b1 * tx1) / n;
+    return this;
+};
+
+/**
+ * Returns true if the matrix is an identity matrix.
+ * @method isIdentity
+ * @return {Boolean}
+ **/
+p.isIdentity = function () {
+    return this.tx === 0 && this.ty === 0 && this.a === 1 && this.b === 0 && this.c === 0 && this.d === 1;
+};
+
+p.identify = function() {
+    this.tx = 0;
+    this.ty = 0;
+    this.a = 1;
+    this.b = 0;
+    this.c = 0;
+    this.d = 1;
+};
+/**
+ * Returns true if this matrix is equal to the specified matrix (all property values are equal).
+ * @method equals
+ * @param {Matrix2D} matrix The matrix to compare.
+ * @return {Boolean}
+ **/
+p.equals = function (matrix) {
+    return this.tx === matrix.tx && this.ty === matrix.ty && this.a === matrix.a && this.b === matrix.b && this.c === matrix.c && this.d === matrix.d;
+};
+
+/**
+ * Transforms a point according to this matrix.
+ * @method transformPoint
+ * @param {Number} x The x component of the point to transform.
+ * @param {Number} y The y component of the point to transform.
+ * @param {Point | Object} [pt] An object to copy the result into. If omitted a generic object with x/y properties will be returned.
+ * @return {Point} This matrix. Useful for chaining method calls.
+ **/
+p.transformPoint = function (x, y, pt) {
+    pt = pt || {};
+    pt.x = x * this.a + y * this.c + this.tx;
+    pt.y = x * this.b + y * this.d + this.ty;
+    return pt;
+};
+
+/**
+ * Decomposes the matrix into transform properties (x, y, scaleX, scaleY, and rotation). Note that these values
+ * may not match the transform properties you used to generate the matrix, though they will produce the same visual
+ * results.
+ * @method decompose
+ * @param {Object} target The object to apply the transform properties to. If null, then a new object will be returned.
+ * @return {Object} The target, or a new generic object with the transform properties applied.
+ */
+p.decompose = function (target) {
+    // TODO: it would be nice to be able to solve for whether the matrix can be decomposed into only scale/rotation even when scale is negative
+    if (target == null) {
+        target = {};
+    }
+    target.x = this.tx;
+    target.y = this.ty;
+    target.scaleX = Math.sqrt(this.a * this.a + this.b * this.b);
+    target.scaleY = Math.sqrt(this.c * this.c + this.d * this.d);
+
+    var skewX = Math.atan2(-this.c, this.d);
+    var skewY = Math.atan2(this.b, this.a);
+
+    var delta = Math.abs(1 - skewX / skewY);
+    if (delta < 0.00001) { // effectively identical, can use rotation:
+        target.rotation = skewY / Matrix2D.DEG_TO_RAD;
+        if (this.a < 0 && this.d >= 0) {
+            target.rotation += (target.rotation <= 0) ? 180 : -180;
         }
-    };
-}());
+        target.skewX = target.skewY = 0;
+    } else {
+        target.skewX = skewX / Matrix2D.DEG_TO_RAD;
+        target.skewY = skewY / Matrix2D.DEG_TO_RAD;
+    }
+    return target;
+};
+
+/**
+ * Copies all properties from the specified matrix to this matrix.
+ * @method copy
+ * @param {Matrix2D} matrix The matrix to copy properties from.
+ * @return {Matrix2D} This matrix. Useful for chaining method calls.
+ */
+p.copy = function (matrix) {
+    return this.setValues(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty);
+};
+
+/**
+ * Returns a clone of the Matrix2D instance.
+ * @method clone
+ * @return {Matrix2D} a clone of the Matrix2D instance.
+ **/
+p.clone = function () {
+    return new Matrix2D(this.a, this.b, this.c, this.d, this.tx, this.ty);
+};
+
+/**
+ * Returns a string representation of this object.
+ * @method toString
+ * @return {String} a string representation of the instance.
+ **/
+p.toString = function () {
+    return "[Matrix2D (a=" + this.a + " b=" + this.b + " c=" + this.c + " d=" + this.d + " tx=" + this.tx + " ty=" + this.ty + ")]";
+};
+
+// this has to be populated after the class is defined:
+Matrix2D.identity = new Matrix2D();
 
 
+module.exports = {
+    create: function () {
+        return new Matrix2D();
+    }
+};
 },{}],8:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-23.
@@ -705,27 +973,29 @@ function init() {
     var gdr = new DrawRecorder().beginPath().rect(0, 0, 50, 50).stroke().drawable(50, 50);
     //
     var shape1 = new Element(gdr);
-    //var shape2 = new Element(gdr);
-    //var shape3 = new Element(gdr);
+    var shape2 = new Element(gdr);
+    var shape3 = new Element(gdr);
     //utils.print(shape1);
-    //shape1.scale(0.5, 0.5);
-    //shape2.setTranslate(0, 50);
-    //shape3.rotate(120);
-
-    //var group = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
-    //    .skipV(100).add(shape3);
-    var group = (new Group()).add(shape1);
+    shape1.scale(0.5, 0.5);
+    shape2.setTranslate(0, 50);
+    shape3.rotate(45);
+    shape3.scale(2, 2);
+    shape3.move(50, 100);
+    //
+    var group = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
+        .skipV(100).add(shape3);
+    //var group = (new Group()).skipH(100).skipV(100).add(shape3);
     var stage = new Stage();
     wvv.setStage("demoCanvas", stage);
     stage.addGroup(group);
     wvv.gameLoop();
     //convert to radian
-    //tween.get(shape1).to({"r": 180 * Math.PI / 180}).ease(function (x) {
-    //    return x;
-    //}).duration(10000).start();
-    //tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5}).ease(function (x) {
-    //    return x;
-    //}).duration(1000).start();
+    tween.get(shape2).to({"r": 45}).ease(function (x) {
+        return x;
+    }).duration(1000).start();
+    tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
+        return x;
+    }).duration(1000).start();
 };
 
 init();

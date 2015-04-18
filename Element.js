@@ -10,7 +10,7 @@ var draw = function (dc) {
     dc.save();
     var mat = this.rMatrix;
     //utils.print("mat="+mat);
-    dc.transform(mat.a, mat.c, mat.b, mat.d, mat.tx, mat.ty);
+    dc.transform(mat.a, mat.b, mat.c, mat.d, mat.tx, mat.ty);
     this.drawable.draw(dc);
     dc.restore();
 };
@@ -36,14 +36,14 @@ function Element(drawable) {
         var rpy = e.rpy > 0 ? e.rpy : cy;
 
         console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
-        matrix.translate(rpx, rpy);
-        matrix.rotate(e.r);
-        matrix.translate(e.tx -e.rpx, e.ty-e.rpy);
-        //matrix.translate(spx, spy);
-        //matrix.scale(e.sx, e.sy);
-        //matrix.translate(rpx - spx, rpy - spy);
+        //matrix.translate(e.tx + rpx, e.tx + rpy);
         //matrix.rotate(e.r);
-        //matrix.translate(e.tx - rpx, e.ty - rpy);
+        //matrix.translate(-rpx, -rpy);
+        matrix.translate(e.tx + rpx, e.ty + rpy);
+        matrix.rotate(e.r);
+        matrix.translate(spx - rpx, spy - rpy);
+        matrix.scale(e.sx, e.sy);
+        matrix.translate(- spx, - spy);
     };
     this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
         wvv.post(f);
