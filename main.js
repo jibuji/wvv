@@ -1,17 +1,14 @@
 /**
  * Created by jiengfei on 15-4-13.
  */
-/**
- * Created by jiengfei on 15-3-23.
- */
 var Group = require('./Group');
-var utils = require('./utils');
+var wvv = require('./wvv');
+var tween = require('./tween');
 function init() {
-    var wvv = require('./wvv');
     var Stage = require('./Stage');
     var DrawRecorder = require('./DrawRecorder');
 
-    var Element = require('./AElement');
+    var Element = require('./Element');
     var gdr = new DrawRecorder().beginPath().rect(0, 0, 50, 50).stroke().drawable(50, 50);
     //
     var shape1 = new Element(gdr);
@@ -19,30 +16,25 @@ function init() {
     var shape3 = new Element(gdr);
     //utils.print(shape1);
     shape1.scale(0.5, 0.5);
-    shape2.translate(0, 50);
-    shape3.rotate(120);
-    //var group = new Group();
-    //group.add(shape1);
-    //group.skipH(100);
-    //group.add(shape2);
-    //group.nextLine();
-    //group.skipV(100);
-    //group.add(shape3);
-    //var children = group;
-    var children = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
+    shape2.setTranslate(0, 50);
+    shape3.rotate(45);
+    shape3.scale(2, 2);
+    shape3.move(50, 100);
+    //
+    var group = (new Group()).add(shape1).skipH(100).add(shape2).nextLine()
         .skipV(100).add(shape3);
-
-    //utils.print(shape3);
-    //console.log("shape3=" + shape3+";shape3.tx="+shape3.tx);
-
+    //var group = (new Group()).skipH(100).skipV(100).add(shape3);
     var stage = new Stage();
-    console.log("main tx=" + stage.tx + ";ty=" + stage.ty);
     wvv.setStage("demoCanvas", stage);
-    console.log("main 2 tx=" + stage.tx + ";ty=" + stage.ty);
-    stage.addGroup(children);
-    console.log("main 3 tx=" + stage.tx + ";ty=" + stage.ty);
+    stage.addGroup(group);
     wvv.gameLoop();
-    console.log("init done");
+    //convert to radian
+    tween.get(shape2).to({"r": 45}).ease(function (x) {
+        return x;
+    }).duration(1000).start();
+    tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
+        return x;
+    }).duration(1000).start();
 };
 
 init();

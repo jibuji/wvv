@@ -9,13 +9,13 @@ var EmptyFunc = utils.EmptyFunction;
 
 function ADrawable() {
     this.width = this.height = 0;
-    this.scaleX = this.scaleY = 1;
+    this.sx = this.sy = 1;
 };
 
 var p = ADrawable.prototype;
 p.scale = function (scaleX, scaleY) {
-    this.scaleX *= scaleX;
-    this.scaleY *= scaleY;
+    this.sx *= scaleX;
+    this.sy *= scaleY;
 };
 p.getSize = function () {
     return {

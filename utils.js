@@ -42,9 +42,23 @@ utils.assert = function (condition, format, a, b, c, d, e, f) {
     }
 };
 
-utils.EmptyFunction = new function(){};
+utils.oncePoster = function (cb, postFunc, arg) {
+    var posted = false;
+    return function () {
+        if (!posted) {
+            posted = true;
+            postFunc(function () {
+                cb(arg);
+                posted = false;
+            });
+        }
+    };
+};
 
-utils.extend = function(obj) {
+utils.EmptyFunction = function () {
+};
+
+utils.extend = function (obj) {
     var length = arguments.length;
     if (length < 2 || obj == null) return obj;
     for (var index = 1; index < length; index++) {
@@ -59,20 +73,35 @@ utils.extend = function(obj) {
     return obj;
 };
 
-utils.isObject = function(obj) {
+utils.isObject = function (obj) {
     var type = typeof obj;
     return type === 'function' || type === 'object' && !!obj;
 };
 
-utils.clone = function(obj) {
+utils.clone = function (obj) {
     if (!utils.isObject(obj)) return obj;
     return Array.isArray(obj) ? obj.slice() : utils.extend({}, obj);
 };
 
-utils.print = function(obj) {
-  for (var key in obj) {
-      console.log("{"+key+":"+obj[key]+"}");
-  }
+utils.print = function (obj) {
+    for (var key in obj) {
+        console.log("{" + key + ":" + obj[key] + "}");
+    }
+};
+
+utils.nowMs = function () {
+  return Date.now();
+};
+
+utils.removeFromArray = function(arr, elem) {
+    var index = arr.indexOf(elem);
+    if (index >= 0) {
+        arr.splice(index, 1);
+    }
+};
+
+utils.radian = function(angle) {
+    return angle * Math.PI / 180;
 };
 
 module.exports = utils;
