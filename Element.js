@@ -35,7 +35,6 @@ function Element(drawable) {
         var rpx = e.rpx > 0 ? e.rpx : cx;
         var rpy = e.rpy > 0 ? e.rpy : cy;
 
-        console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
         //matrix.translate(e.tx + rpx, e.tx + rpy);
         //matrix.rotate(e.r);
         //matrix.translate(-rpx, -rpy);

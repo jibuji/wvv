@@ -145,7 +145,6 @@ function Element(drawable) {
         var rpx = e.rpx > 0 ? e.rpx : cx;
         var rpy = e.rpy > 0 ? e.rpy : cy;
 
-        console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
         //matrix.translate(e.tx + rpx, e.tx + rpy);
         //matrix.rotate(e.r);
         //matrix.translate(-rpx, -rpy);
@@ -261,7 +260,6 @@ Group.prototype.add = function (e) {
     assert(!this._frozen, "You can't addElements after move.");
     assert(!e.ctx, "this element (%s) has been added to Stage already.", e);
     e.move(this.tx, this.ty);
-    console.log("after move tx="+this.tx+";ty="+this.ty);
     e.ctx = this.ctx;
     var size = e.getSize();
     this.tx += size.width;
@@ -996,6 +994,19 @@ function init() {
     tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
         return x;
     }).duration(1000).start();
+
+
+    var img = new Image();   // Create new img element
+    img.addEventListener("load", function() {
+        console.log("image loaded 0");
+    }, false);
+    img.onload = function() {
+      console.log("image onload 1");
+    };
+    img.onload = function() {
+        console.log("image onload 2");
+    };
+    img.src = 'res/img/backdrop.png'; // Set source path
 };
 
 init();
@@ -1098,7 +1109,6 @@ Animation.prototype.start = function () {
     var animatedKeys = this._animatedKeys = [];
     var animatedValues = this._animatedValues = [];
     var keys = Object.keys(toProps);
-    utils.print(keys);
     for (var index = 0, length = keys.length; index < length; ++index) {
         var key = keys[index];
         if (target.hasOwnProperty(key)) {
