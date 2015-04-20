@@ -1,5 +1,5 @@
 ## wvv
-#0.02版本，简要想法如下：
+#0.03版本，简要想法如下：
 ```
 Graphics包含绘制的常用函数
 Shape, Image, Text是三种基本的Element，Stage里面直接是Element，Group起到给Stage布局的作用
