@@ -4,11 +4,11 @@
 
 "use strict";
 var utils = require('./utils');
-var Matrix = require('./Matrix');
+var Matrix2D = require('./Matrix2D');
 var wvv = require('./wvv');
 var draw = function (dc) {
     dc.save();
-    var mat = this.rMatrix;
+    var mat = this.matrix;
     //utils.print("mat="+mat);
     dc.transform(mat.a, mat.b, mat.c, mat.d, mat.tx, mat.ty);
     this.drawable.draw(dc);
@@ -17,14 +17,14 @@ var draw = function (dc) {
 
 function Element(drawable) {
     this.tx = this.ty = 0;
-    this.rMatrix = Matrix.create();
+    this.matrix = new Matrix2D();
     this.drawable = drawable;
     this.draw = draw;
     this.r = 0;
     this.rpx = this.rpy = this.spx = this.spy = -1;
     this.sx = this.sy = 1;
     var buildMatrix = function (e) {
-        var matrix = e.rMatrix;
+        var matrix = e.matrix;
         matrix.identify();
         var size = e.getSize();
         var cx = size.width / 2;

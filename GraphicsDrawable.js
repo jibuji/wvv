@@ -4,7 +4,6 @@ var ADrawable = require('./ADrawable');
 function GraphicsDrawable(w, h, drawFunc) {
     ADrawable.apply(this);
     var thisObj = this;
-    var mat = require('./Matrix').create();
     this.draw = function (dc) {
         var sx = thisObj.sx;
         var sy = thisObj.sy;
