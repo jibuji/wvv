@@ -44,3 +44,5 @@ browserify main.js > bin/bundle.js
   基础框架
 0.0.2版本 4月18日
   添加动画机制，增加tween.js类
+0.0.3版本 4月20日
+  添加ImageDrawable
