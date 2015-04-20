@@ -96,7 +96,6 @@ Animation.prototype.start = function () {
     var animatedKeys = this._animatedKeys = [];
     var animatedValues = this._animatedValues = [];
     var keys = Object.keys(toProps);
-    utils.print(keys);
     for (var index = 0, length = keys.length; index < length; ++index) {
         var key = keys[index];
         if (target.hasOwnProperty(key)) {

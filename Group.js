@@ -16,7 +16,6 @@ Group.prototype.add = function (e) {
     assert(!this._frozen, "You can't addElements after move.");
     assert(!e.ctx, "this element (%s) has been added to Stage already.", e);
     e.move(this.tx, this.ty);
-    console.log("after move tx="+this.tx+";ty="+this.ty);
     e.ctx = this.ctx;
     var size = e.getSize();
     this.tx += size.width;

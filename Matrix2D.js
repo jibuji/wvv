@@ -546,9 +546,4 @@ p.toString = function () {
 // this has to be populated after the class is defined:
 Matrix2D.identity = new Matrix2D();
 
-
-module.exports = {
-    create: function () {
-        return new Matrix2D();
-    }
-};
+module.exports = Matrix2D;

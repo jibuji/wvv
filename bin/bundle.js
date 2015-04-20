@@ -33,7 +33,7 @@ p.getHeight = function () {
 p.draw = EmptyFunc;
 
 module.exports = ADrawable;
-},{"./utils":11}],2:[function(require,module,exports){
+},{"./utils":12}],2:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-24.
  */
@@ -107,18 +107,18 @@ function DrawRecorder() {
 module.exports = DrawRecorder;
 
 
-},{"./GraphicsDrawable":5,"./utils":11}],4:[function(require,module,exports){
+},{"./GraphicsDrawable":5,"./utils":12}],4:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-24.
  */
 
 "use strict";
 var utils = require('./utils');
-var Matrix = require('./Matrix');
+var Matrix2D = require('./Matrix2D');
 var wvv = require('./wvv');
 var draw = function (dc) {
     dc.save();
-    var mat = this.rMatrix;
+    var mat = this.matrix;
     //utils.print("mat="+mat);
     dc.transform(mat.a, mat.b, mat.c, mat.d, mat.tx, mat.ty);
     this.drawable.draw(dc);
@@ -127,14 +127,14 @@ var draw = function (dc) {
 
 function Element(drawable) {
     this.tx = this.ty = 0;
-    this.rMatrix = Matrix.create();
+    this.matrix = new Matrix2D();
     this.drawable = drawable;
     this.draw = draw;
     this.r = 0;
     this.rpx = this.rpy = this.spx = this.spy = -1;
     this.sx = this.sy = 1;
     var buildMatrix = function (e) {
-        var matrix = e.rMatrix;
+        var matrix = e.matrix;
         matrix.identify();
         var size = e.getSize();
         var cx = size.width / 2;
@@ -145,7 +145,6 @@ function Element(drawable) {
         var rpx = e.rpx > 0 ? e.rpx : cx;
         var rpy = e.rpy > 0 ? e.rpy : cy;
 
-        console.log("rpx="+rpx+";cx="+cx+";r="+ e.r+';tx='+ e.tx+";ty="+ e.ty);
         //matrix.translate(e.tx + rpx, e.tx + rpy);
         //matrix.rotate(e.r);
         //matrix.translate(-rpx, -rpy);
@@ -219,14 +218,13 @@ module.exports = Element;
 
 
 
-},{"./Matrix":7,"./utils":11,"./wvv":12}],5:[function(require,module,exports){
+},{"./Matrix2D":8,"./utils":12,"./wvv":13}],5:[function(require,module,exports){
 "use strict";
 var ADrawable = require('./ADrawable');
 
 function GraphicsDrawable(w, h, drawFunc) {
     ADrawable.apply(this);
     var thisObj = this;
-    var mat = require('./Matrix').create();
     this.draw = function (dc) {
         var sx = thisObj.sx;
         var sy = thisObj.sy;
@@ -242,7 +240,7 @@ function GraphicsDrawable(w, h, drawFunc) {
 GraphicsDrawable.prototype = Object.create(ADrawable.prototype);
 
 module.exports = GraphicsDrawable;
-},{"./ADrawable":1,"./Matrix":7}],6:[function(require,module,exports){
+},{"./ADrawable":1}],6:[function(require,module,exports){
 /**
  * Group can position elements to Stage.
  * CAUTION: You shouldn't call *addElement* or *addGroup* after *move*.
@@ -261,7 +259,6 @@ Group.prototype.add = function (e) {
     assert(!this._frozen, "You can't addElements after move.");
     assert(!e.ctx, "this element (%s) has been added to Stage already.", e);
     e.move(this.tx, this.ty);
-    console.log("after move tx="+this.tx+";ty="+this.ty);
     e.ctx = this.ctx;
     var size = e.getSize();
     this.tx += size.width;
@@ -334,7 +331,47 @@ Group.prototype.nextLine = function () {
 };
 
 module.exports = Group;
-},{"./utils":11}],7:[function(require,module,exports){
+},{"./utils":12}],7:[function(require,module,exports){
+"use strict";
+var ADrawable = require('./ADrawable');
+
+function ImageDrawable(w, h, src) {
+    ADrawable.apply(this);
+    this.width = w;
+    this.height = h;
+    this.intrinsicWidth = this.intrinsicHeight = -1;
+    this.loadedSuccess = false;
+    var thisObj = this;
+    var image = this.image = new Image(w, h);
+    image.onload = function () {
+        thisObj.loadedSuccess = true;
+        thisObj.intrinsicWidth = image.naturalWidth;
+        thisObj.intrinsicHeight = image.naturalHeight;
+    };
+    image.onerror = function () {
+        thisObj.loadedSuccess = false;
+        thisObj.intrinsicWidth = -1;
+        thisObj.intrinsicHeight = -1;
+    };
+    image.src = src;
+
+    this.draw = function (dc) {
+        if (thisObj.loadedSuccess) {
+            var sx = thisObj.sx;
+            var sy = thisObj.sy;
+            dc.scale(sx, sy);
+            dc.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight,
+                0, 0, thisObj.width, thisObj.height);
+            dc.scale(1 / sx, 1 / sy);
+        }
+    };
+    return this;
+};
+
+ImageDrawable.prototype = Object.create(ADrawable.prototype);
+
+module.exports = ImageDrawable;
+},{"./ADrawable":1}],8:[function(require,module,exports){
 /*
  * Matrix2D
  * Visit http://createjs.com/ for documentation, updates and examples.
@@ -883,13 +920,8 @@ p.toString = function () {
 // this has to be populated after the class is defined:
 Matrix2D.identity = new Matrix2D();
 
-
-module.exports = {
-    create: function () {
-        return new Matrix2D();
-    }
-};
-},{}],8:[function(require,module,exports){
+module.exports = Matrix2D;
+},{}],9:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-23.
  */
@@ -958,23 +990,27 @@ Stage.prototype.setSize = function(w, h) {
 
 module.exports = Stage;
 
-},{"./Group":6,"./utils":11}],9:[function(require,module,exports){
+},{"./Group":6,"./utils":12}],10:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-4-13.
  */
 var Group = require('./Group');
 var wvv = require('./wvv');
 var tween = require('./tween');
-function init() {
-    var Stage = require('./Stage');
-    var DrawRecorder = require('./DrawRecorder');
+var ImageDrawable = require('./ImageDrawable');
+var Stage = require('./Stage');
+var DrawRecorder = require('./DrawRecorder');
+var Element = require('./Element');
 
-    var Element = require('./Element');
+function init() {
     var gdr = new DrawRecorder().beginPath().rect(0, 0, 50, 50).stroke().drawable(50, 50);
-    //
+    var imgDr = new ImageDrawable(120, 120, 'res/img/eggHead.png');
+    imgDr.onLoad = function(success) {
+        console.log("onLoad success="+success);
+    };
     var shape1 = new Element(gdr);
     var shape2 = new Element(gdr);
-    var shape3 = new Element(gdr);
+    var shape3 = new Element(imgDr);
     //utils.print(shape1);
     shape1.scale(0.5, 0.5);
     shape2.setTranslate(0, 50);
@@ -993,13 +1029,29 @@ function init() {
     tween.get(shape2).to({"r": 45}).ease(function (x) {
         return x;
     }).duration(1000).start();
+    tween.get(shape3).to({"r": 360}).ease(function (x) {
+        return x;
+    }).duration(1000).start();
     tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
         return x;
     }).duration(1000).start();
+
+    //
+    //var img = new Image();   // Create new img element
+    //img.addEventListener("load", function() {
+    //    console.log("image loaded 0");
+    //}, false);
+    //img.onload = function() {
+    //  console.log("image onload 1");
+    //};
+    //img.onload = function() {
+    //    console.log("image onload 2");
+    //};
+    //img.src = 'res/img/backdrop.png'; // Set source path
 };
 
 init();
-},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./Stage":8,"./tween":10,"./wvv":12}],10:[function(require,module,exports){
+},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./ImageDrawable":7,"./Stage":9,"./tween":11,"./wvv":13}],11:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-25.
  */
@@ -1098,7 +1150,6 @@ Animation.prototype.start = function () {
     var animatedKeys = this._animatedKeys = [];
     var animatedValues = this._animatedValues = [];
     var keys = Object.keys(toProps);
-    utils.print(keys);
     for (var index = 0, length = keys.length; index < length; ++index) {
         var key = keys[index];
         if (target.hasOwnProperty(key)) {
@@ -1114,7 +1165,7 @@ Animation.prototype.start = function () {
 };
 
 module.exports = tween;
-},{"./utils":11,"./wvv":12}],11:[function(require,module,exports){
+},{"./utils":12,"./wvv":13}],12:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1223,7 +1274,7 @@ utils.radian = function(angle) {
 
 module.exports = utils;
 
-},{"./CONFIG":2}],12:[function(require,module,exports){
+},{"./CONFIG":2}],13:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-23.
  */
@@ -1306,4 +1357,4 @@ module.exports = utils;
     module.exports = wvv;
 
 }());
-},{"./CONFIG":2}]},{},[9]);
+},{"./CONFIG":2}]},{},[10]);
