@@ -4,6 +4,7 @@
 (function () {
     "use strict";
     var devEnv = require('./CONFIG').DEV;
+    var utils = require('./utils');
     var wvv = {
     };
 
@@ -21,13 +22,6 @@
         //canvas.addEventListener("");
     }
 
-    wvv.setStage = function (layerId, stage) {
-        var canvas = document.getElementById(layerId);
-        var dc = canvas.getContext('2d');
-        stage.setSize(canvas.width, canvas.height);
-        _delegateTouchEventToStage(canvas, stage);
-        _layers.push([layerId, stage, canvas, dc, defaultFlags]);
-    };
 
     var callbacks = [];
     var onceCallback = [];
@@ -42,6 +36,23 @@
         if (index >= 0) {
             callbacks.splice(index, 1);
         }
+    };
+
+    var registerEvent = function() {
+        var handler = require('./eventHandler');
+        var layers = _layers;
+        var topLayer = layers[layers.length - 1];
+        handler.registerOnCanvas(topLayer[CANVAS_INDEX], topLayer[STAGE_ID_INDEX]);
+    };
+
+    var onceRegisterEvent = utils.oncePoster(registerEvent, wvv.post);
+    wvv.setStage = function (layerId, stage) {
+        var canvas = document.getElementById(layerId);
+        var dc = canvas.getContext('2d');
+        stage.setSize(canvas.width, canvas.height);
+        _delegateTouchEventToStage(canvas, stage);
+        _layers.push([layerId, stage, canvas, dc, defaultFlags]);
+        onceRegisterEvent();
     };
 
     var invokeFunction = function (f) {

@@ -33,7 +33,7 @@ p.getHeight = function () {
 p.draw = EmptyFunc;
 
 module.exports = ADrawable;
-},{"./utils":12}],2:[function(require,module,exports){
+},{"./utils":13}],2:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-24.
  */
@@ -107,7 +107,7 @@ function DrawRecorder() {
 module.exports = DrawRecorder;
 
 
-},{"./GraphicsDrawable":5,"./utils":12}],4:[function(require,module,exports){
+},{"./GraphicsDrawable":5,"./utils":13}],4:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-24.
  */
@@ -134,6 +134,7 @@ function Element(drawable) {
     this.rpx = this.rpy = this.spx = this.spy = -1;
     this.sx = this.sy = 1;
     var buildMatrix = function (e) {
+        console.trace();
         var matrix = e.matrix;
         matrix.identify();
         var size = e.getSize();
@@ -156,28 +157,28 @@ function Element(drawable) {
     };
     this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
         wvv.post(f);
-    }, this);
+    });
 };
 
 var p = Element.prototype;
 p.rotate = function (angle) {
     this.r = angle;
     this.rpx = this.rpy = -1;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.pivotRotate = function (angle, px, py) {
     this.r = angle;
     this.rpx = px;
     this.rpy = py;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.scale = function (sx, sy) {
     this.sx = sx;
     this.sy = sy;
     this.spx = this.spy = -1;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.pivotScale = function (sx, sy, px, py) {
@@ -185,13 +186,13 @@ p.pivotScale = function (sx, sy, px, py) {
     this.sy = sy;
     this.spx = px;
     this.spy = py;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.setTranslate = function (tx, ty) {
     this.tx = tx;
     this.ty = ty;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.getSize = function () {
@@ -209,7 +210,7 @@ p.getHeight = function () {
 p.move = function(tx, ty) {
     this.tx += tx;
     this.ty += ty;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.draw = draw;
@@ -218,7 +219,7 @@ module.exports = Element;
 
 
 
-},{"./Matrix2D":8,"./utils":12,"./wvv":13}],5:[function(require,module,exports){
+},{"./Matrix2D":8,"./utils":13,"./wvv":14}],5:[function(require,module,exports){
 "use strict";
 var ADrawable = require('./ADrawable');
 
@@ -331,7 +332,7 @@ Group.prototype.nextLine = function () {
 };
 
 module.exports = Group;
-},{"./utils":12}],7:[function(require,module,exports){
+},{"./utils":13}],7:[function(require,module,exports){
 "use strict";
 var ADrawable = require('./ADrawable');
 
@@ -990,7 +991,34 @@ Stage.prototype.setSize = function(w, h) {
 
 module.exports = Stage;
 
-},{"./Group":6,"./utils":12}],10:[function(require,module,exports){
+},{"./Group":6,"./utils":13}],10:[function(require,module,exports){
+/**
+ * Created by jiengfei on 15-4-22.
+ */
+var utils = require('./utils');
+
+var doMouseDown = function(stage, event) {
+    console.log("mouse down event="+event);
+};
+
+var doMouseMove = function(stage, event) {
+    console.log("mouse move event="+event);
+};
+
+var doMouseUp = function(stage, event) {
+    console.log("mouse up event="+event);
+};
+
+var registerOnCanvas = function(canvas, stage) {
+    canvas.addEventListener("mousedown", utils.partial(doMouseDown, stage), false);
+    canvas.addEventListener("mousemove", utils.partial(doMouseMove, stage), false);
+    canvas.addEventListener("mouseup", utils.partial(doMouseUp, stage), false);
+};
+
+module.exports = {
+    'registerOnCanvas' : registerOnCanvas
+};
+},{"./utils":13}],11:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-4-13.
  */
@@ -1035,23 +1063,10 @@ function init() {
     tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
         return x;
     }).duration(1000).start();
-
-    //
-    //var img = new Image();   // Create new img element
-    //img.addEventListener("load", function() {
-    //    console.log("image loaded 0");
-    //}, false);
-    //img.onload = function() {
-    //  console.log("image onload 1");
-    //};
-    //img.onload = function() {
-    //    console.log("image onload 2");
-    //};
-    //img.src = 'res/img/backdrop.png'; // Set source path
 };
 
 init();
-},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./ImageDrawable":7,"./Stage":9,"./tween":11,"./wvv":13}],11:[function(require,module,exports){
+},{"./DrawRecorder":3,"./Element":4,"./Group":6,"./ImageDrawable":7,"./Stage":9,"./tween":12,"./wvv":14}],12:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-25.
  */
@@ -1165,7 +1180,7 @@ Animation.prototype.start = function () {
 };
 
 module.exports = tween;
-},{"./utils":12,"./wvv":13}],12:[function(require,module,exports){
+},{"./utils":13,"./wvv":14}],13:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1179,6 +1194,10 @@ module.exports = tween;
  * will remain to ensure logic does not differ in production.
  */
 var CONFIG = require('./CONFIG');
+var ArrayProto = Array.prototype
+var slice = ArrayProto.slice;
+var push = ArrayProto.push;
+
 var utils = {};
 utils.assert = function (condition, format, a, b, c, d, e, f) {
     if (CONFIG.DEV) {
@@ -1210,11 +1229,13 @@ utils.assert = function (condition, format, a, b, c, d, e, f) {
     }
 };
 
-utils.oncePoster = function (cb, postFunc, arg) {
+utils.oncePoster = function (cb, postFunc) {
     var posted = false;
-    return function () {
+    return function (arg) {
         if (!posted) {
             posted = true;
+            console.log("arg = "+arg);
+            console.trace();
             postFunc(function () {
                 cb(arg);
                 posted = false;
@@ -1239,6 +1260,20 @@ utils.extend = function (obj) {
         }
     }
     return obj;
+};
+
+utils.appendArray = function(array, argArray) {
+    push.apply(array, argArray);
+};
+
+utils.partial = function(func) {
+    var boundArgs = slice.call(arguments, 1);
+    var bound = function() {
+        var args = boundArgs.slice();
+        push.apply(args, arguments);
+        return func.apply(this, args);
+    };
+    return bound;
 };
 
 utils.isObject = function (obj) {
@@ -1274,13 +1309,14 @@ utils.radian = function(angle) {
 
 module.exports = utils;
 
-},{"./CONFIG":2}],13:[function(require,module,exports){
+},{"./CONFIG":2}],14:[function(require,module,exports){
 /**
  * Created by jiengfei on 15-3-23.
  */
 (function () {
     "use strict";
     var devEnv = require('./CONFIG').DEV;
+    var utils = require('./utils');
     var wvv = {
     };
 
@@ -1298,13 +1334,6 @@ module.exports = utils;
         //canvas.addEventListener("");
     }
 
-    wvv.setStage = function (layerId, stage) {
-        var canvas = document.getElementById(layerId);
-        var dc = canvas.getContext('2d');
-        stage.setSize(canvas.width, canvas.height);
-        _delegateTouchEventToStage(canvas, stage);
-        _layers.push([layerId, stage, canvas, dc, defaultFlags]);
-    };
 
     var callbacks = [];
     var onceCallback = [];
@@ -1319,6 +1348,23 @@ module.exports = utils;
         if (index >= 0) {
             callbacks.splice(index, 1);
         }
+    };
+
+    var registerEvent = function() {
+        var handler = require('./eventHandler');
+        var layers = _layers;
+        var topLayer = layers[layers.length - 1];
+        handler.registerOnCanvas(topLayer[CANVAS_INDEX], topLayer[STAGE_ID_INDEX]);
+    };
+
+    var onceRegisterEvent = utils.oncePoster(registerEvent, wvv.post);
+    wvv.setStage = function (layerId, stage) {
+        var canvas = document.getElementById(layerId);
+        var dc = canvas.getContext('2d');
+        stage.setSize(canvas.width, canvas.height);
+        _delegateTouchEventToStage(canvas, stage);
+        _layers.push([layerId, stage, canvas, dc, defaultFlags]);
+        onceRegisterEvent();
     };
 
     var invokeFunction = function (f) {
@@ -1357,4 +1403,4 @@ module.exports = utils;
     module.exports = wvv;
 
 }());
-},{"./CONFIG":2}]},{},[10]);
+},{"./CONFIG":2,"./eventHandler":10,"./utils":13}]},{},[11]);

@@ -24,6 +24,7 @@ function Element(drawable) {
     this.rpx = this.rpy = this.spx = this.spy = -1;
     this.sx = this.sy = 1;
     var buildMatrix = function (e) {
+        console.trace();
         var matrix = e.matrix;
         matrix.identify();
         var size = e.getSize();
@@ -46,28 +47,28 @@ function Element(drawable) {
     };
     this.delayBuildMatrixFunc = utils.oncePoster(buildMatrix, function (f) {
         wvv.post(f);
-    }, this);
+    });
 };
 
 var p = Element.prototype;
 p.rotate = function (angle) {
     this.r = angle;
     this.rpx = this.rpy = -1;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.pivotRotate = function (angle, px, py) {
     this.r = angle;
     this.rpx = px;
     this.rpy = py;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.scale = function (sx, sy) {
     this.sx = sx;
     this.sy = sy;
     this.spx = this.spy = -1;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.pivotScale = function (sx, sy, px, py) {
@@ -75,13 +76,13 @@ p.pivotScale = function (sx, sy, px, py) {
     this.sy = sy;
     this.spx = px;
     this.spy = py;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.setTranslate = function (tx, ty) {
     this.tx = tx;
     this.ty = ty;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.getSize = function () {
@@ -99,7 +100,7 @@ p.getHeight = function () {
 p.move = function(tx, ty) {
     this.tx += tx;
     this.ty += ty;
-    this.delayBuildMatrixFunc();
+    this.delayBuildMatrixFunc(this);
 };
 
 p.draw = draw;

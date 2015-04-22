@@ -42,19 +42,6 @@ function init() {
     tween.get(shape1).to({'tx': 400, 'ty': 200, "sx": 5, 'r':90}).ease(function (x) {
         return x;
     }).duration(1000).start();
-
-    //
-    //var img = new Image();   // Create new img element
-    //img.addEventListener("load", function() {
-    //    console.log("image loaded 0");
-    //}, false);
-    //img.onload = function() {
-    //  console.log("image onload 1");
-    //};
-    //img.onload = function() {
-    //    console.log("image onload 2");
-    //};
-    //img.src = 'res/img/backdrop.png'; // Set source path
 };
 
 init();

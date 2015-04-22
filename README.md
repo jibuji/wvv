@@ -2,7 +2,7 @@
 #0.02版本，简要想法如下：
 ```
 Graphics包含绘制的常用函数
-Shape, Image, Text是三种基本的Element，Stage里面直接是Element，Group起到给Stage布局的作用
+Image, Text, Graphics是三种基本的Drawable，Element Stage里面直接是Element，Group起到给Stage布局的作用
 这些基本的Element，如果没设置width和height，width和height就由内容自动判断，否则按照设置的为准。宽和高在绘制之后不容改变，否则会出现异常。
 Element中没有x, y，只有matrix数组，position记录它的位置(用四个点来表示)；
 ElemClip只显示Element原始状态的一部分，ElemClip本身也Element，可以有自己的matrix, position等。

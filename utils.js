@@ -11,6 +11,10 @@
  * will remain to ensure logic does not differ in production.
  */
 var CONFIG = require('./CONFIG');
+var ArrayProto = Array.prototype
+var slice = ArrayProto.slice;
+var push = ArrayProto.push;
+
 var utils = {};
 utils.assert = function (condition, format, a, b, c, d, e, f) {
     if (CONFIG.DEV) {
@@ -42,11 +46,13 @@ utils.assert = function (condition, format, a, b, c, d, e, f) {
     }
 };
 
-utils.oncePoster = function (cb, postFunc, arg) {
+utils.oncePoster = function (cb, postFunc) {
     var posted = false;
-    return function () {
+    return function (arg) {
         if (!posted) {
             posted = true;
+            console.log("arg = "+arg);
+            console.trace();
             postFunc(function () {
                 cb(arg);
                 posted = false;
@@ -71,6 +77,20 @@ utils.extend = function (obj) {
         }
     }
     return obj;
+};
+
+utils.appendArray = function(array, argArray) {
+    push.apply(array, argArray);
+};
+
+utils.partial = function(func) {
+    var boundArgs = slice.call(arguments, 1);
+    var bound = function() {
+        var args = boundArgs.slice();
+        push.apply(args, arguments);
+        return func.apply(this, args);
+    };
+    return bound;
 };
 
 utils.isObject = function (obj) {
